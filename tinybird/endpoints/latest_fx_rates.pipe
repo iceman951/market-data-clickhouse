@@ -1,0 +1,29 @@
+DESCRIPTION >
+    Latest rate per stored pair on or before as_of (Merton ADR-VAL-02/03): rate as a decimal string,
+    its date and source, and stale = rate_date more than 3 calendar days before as_of.
+    Pairs are returned as stored; choosing direct vs inverse stays in Merton (ADR-VAL-06).
+
+TOKEN read_token READ
+
+NODE latest
+SQL >
+    %
+    SELECT base_currency, quote_currency, d AS rate_date, toString(r) AS rate, src AS source,
+           dateDiff('day', d, as_of) > 3 AS stale, as_of
+    FROM (
+        WITH {% if defined(as_of) %}toDate32({{ Date(as_of, description="Valuation date, default today") }}){% else %}toDate32(today()){% end %} AS as_of_date
+        SELECT base_currency, quote_currency, max(rate_date) AS d, argMax(rate, rate_date) AS r,
+               argMax(source, rate_date) AS src, as_of_date AS as_of
+        FROM fx_rates FINAL
+        WHERE rate_date <= as_of_date
+        {% if defined(base_currency) %}
+            AND base_currency = {{ String(base_currency, description="ISO code, e.g. USD") }}
+        {% end %}
+        {% if defined(quote_currency) %}
+            AND quote_currency = {{ String(quote_currency, description="ISO code, e.g. THB") }}
+        {% end %}
+        GROUP BY base_currency, quote_currency
+    )
+    ORDER BY base_currency, quote_currency
+
+TYPE endpoint

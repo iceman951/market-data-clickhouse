@@ -1,0 +1,24 @@
+{
+  "name": "market-data-clickhouse",
+  "private": true,
+  "type": "module",
+  "description": "EODHD-first market data (Yahoo Finance fallback) into Tinybird / ClickHouse, on Cloudflare Workers Cron Triggers",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "tinybird:check": "sh scripts/deploy-tinybird.sh --check",
+    "tinybird:deploy": "sh scripts/deploy-tinybird.sh"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261103.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.156.2"
+  },
+  "allowScripts": {
+    "workerd@1.20261102.1": true,
+    "esbuild@0.28.2": true
+  }
+}

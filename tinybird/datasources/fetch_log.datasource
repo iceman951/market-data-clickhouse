@@ -1,0 +1,26 @@
+DESCRIPTION >
+    One row per upstream request, for incremental fetching and quota tracking.
+    dataset: eod | dividends | splits | fx | tickers. status: ok | empty | error | quota.
+    symbol is the EODHD symbol or the FX pair (USD/THB).
+    api_calls = EODHD calls consumed (1 per successful request, 0 for Yahoo).
+    Rows expire after 1 year.
+
+SCHEMA >
+    `fetched_at` DateTime64(3) `json:$.fetched_at`,
+    `dataset` LowCardinality(String) `json:$.dataset`,
+    `symbol` String `json:$.symbol`,
+    `source` LowCardinality(String) `json:$.source`,
+    `status` LowCardinality(String) `json:$.status`,
+    `http_status` UInt16 `json:$.http_status` DEFAULT 0,
+    `from_date` Nullable(Date32) `json:$.from_date`,
+    `to_date` Nullable(Date32) `json:$.to_date`,
+    `rows` UInt32 `json:$.rows` DEFAULT 0,
+    `api_calls` UInt16 `json:$.api_calls` DEFAULT 0,
+    `message` String `json:$.message` DEFAULT ''
+
+ENGINE "MergeTree"
+ENGINE_SORTING_KEY "dataset, symbol, fetched_at"
+ENGINE_PARTITION_KEY "toYYYYMM(fetched_at)"
+ENGINE_TTL "toDateTime(fetched_at) + INTERVAL 1 YEAR"
+
+TOKEN ingest_token APPEND

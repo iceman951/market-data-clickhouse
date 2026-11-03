@@ -1,0 +1,25 @@
+DESCRIPTION >
+    Latest raw close per symbol on or before as_of (Merton ADR-VAL-02): price as a decimal string,
+    its date and source, and stale = price_date more than 7 calendar days before as_of.
+
+TOKEN read_token READ
+
+NODE latest
+SQL >
+    %
+    SELECT symbol, d AS price_date, toString(p) AS price, src AS source,
+           dateDiff('day', d, as_of) > 7 AS stale, as_of
+    FROM (
+        WITH {% if defined(as_of) %}toDate32({{ Date(as_of, description="Valuation date, default today") }}){% else %}toDate32(today()){% end %} AS as_of_date
+        SELECT symbol, max(price_date) AS d, argMax(close, price_date) AS p,
+               argMax(source, price_date) AS src, as_of_date AS as_of
+        FROM eod_prices FINAL
+        WHERE price_date <= as_of_date
+        {% if defined(ticker) %}
+            AND symbol = {{ String(ticker, description="EODHD-style symbol, e.g. AAPL.US") }}
+        {% end %}
+        GROUP BY symbol
+    )
+    ORDER BY symbol
+
+TYPE endpoint

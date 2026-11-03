@@ -1,0 +1,33 @@
+DESCRIPTION >
+    Instrument master, one row per EODHD-format symbol (CODE.EXCHANGE, e.g. AAPL.US, PTT.BK).
+    Maps to a Merton instrument: code -> symbol, exchange, isin, name, quote_currency, asset_class.
+    asset_class follows ADR-INST-04 (STOCK | ETF | MUTUAL_FUND), '' for anything else (index, FX, crypto);
+    source_type keeps the upstream type ("Common Stock", "ETF", "EQUITY", ...).
+    Primary source: EODHD Search API /api/search/{CODE}?exchange={EXCHANGE} (exact Code + Exchange match;
+    exchange is the EODHD exchange code). Fallback: Yahoo chart meta (no ISIN).
+    yahoo_symbol overrides the automatic EODHD -> Yahoo mapping when non-empty.
+    Highest version wins; query with FINAL.
+    Same key from both sources: EODHD always wins over Yahoo; within a source the latest fetch wins
+    (version = source rank x 10^13 + ingest epoch ms; EODHD rank 2, YAHOO rank 1).
+
+SCHEMA >
+    `symbol` String `json:$.symbol`,
+    `code` String `json:$.code`,
+    `exchange` LowCardinality(String) `json:$.exchange`,
+    `name` String `json:$.name`,
+    `quote_currency` LowCardinality(String) `json:$.quote_currency`,
+    `country` LowCardinality(String) `json:$.country` DEFAULT '',
+    `asset_class` LowCardinality(String) `json:$.asset_class` DEFAULT '',
+    `source_type` LowCardinality(String) `json:$.source_type` DEFAULT '',
+    `isin` Nullable(String) `json:$.isin`,
+    `yahoo_symbol` String `json:$.yahoo_symbol` DEFAULT '',
+    `is_delisted` UInt8 `json:$.is_delisted` DEFAULT 0,
+    `source` LowCardinality(String) `json:$.source`,
+    `updated_at` DateTime64(3) `json:$.updated_at`,
+    `version` UInt64 `json:$.version`
+
+ENGINE "ReplacingMergeTree"
+ENGINE_VER version
+ENGINE_SORTING_KEY "symbol"
+
+TOKEN ingest_token APPEND

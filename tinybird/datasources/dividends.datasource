@@ -1,0 +1,31 @@
+DESCRIPTION >
+    Cash dividends, keyed by ex-dividend date.
+    per_share is the amount actually paid per share held on ex_date (Snowball "Per share", Merton DIVIDEND);
+    split_adjusted_per_share restates it per current share after later splits.
+    Primary source: EODHD /api/div/{SYMBOL} (date -> ex_date, unadjustedValue -> per_share,
+    value -> split_adjusted_per_share, plus declaration/record/payment dates and period).
+    Fallback: Yahoo chart events (ex-date and split-adjusted amount only); the ingester computes per_share
+    from the splits after ex_date and leaves the other dates NULL.
+    Highest version wins per (symbol, ex_date); query with FINAL.
+    Same key from both sources: EODHD always wins over Yahoo; within a source the latest fetch wins
+    (version = source rank x 10^13 + ingest epoch ms; EODHD rank 2, YAHOO rank 1).
+
+SCHEMA >
+    `symbol` String `json:$.symbol`,
+    `ex_date` Date32 `json:$.ex_date`,
+    `declaration_date` Nullable(Date32) `json:$.declaration_date`,
+    `record_date` Nullable(Date32) `json:$.record_date`,
+    `payment_date` Nullable(Date32) `json:$.payment_date`,
+    `period` LowCardinality(String) `json:$.period` DEFAULT '',
+    `per_share` Decimal(23, 8) `json:$.per_share`,
+    `split_adjusted_per_share` Decimal(23, 8) `json:$.split_adjusted_per_share`,
+    `currency` LowCardinality(String) `json:$.currency`,
+    `source` LowCardinality(String) `json:$.source`,
+    `ingested_at` DateTime64(3) `json:$.ingested_at`,
+    `version` UInt64 `json:$.version`
+
+ENGINE "ReplacingMergeTree"
+ENGINE_VER version
+ENGINE_SORTING_KEY "symbol, ex_date"
+
+TOKEN ingest_token APPEND

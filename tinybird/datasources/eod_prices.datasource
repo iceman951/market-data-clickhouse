@@ -1,0 +1,33 @@
+DESCRIPTION >
+    Daily OHLCV bars, RAW (not split-adjusted), in the instrument's quote currency.
+    Decimals follow Merton ADR-NUM-04 (8 places, 15 integer digits) and arrive as decimal strings.
+    close is the value Merton imports as instrument_prices.price for price_date (ADR-VAL-06).
+    Primary source: EODHD /api/eod/{SYMBOL} (OHLC are raw).
+    Fallback: Yahoo chart API, whose OHLC are split-adjusted; the ingester converts them back to raw
+    with the splits dated after each bar and rounds to Yahoo's priceHint.
+    volume is split-adjusted, as both EODHD and Yahoo deliver it.
+    adjusted_close is the source's split+dividend adjusted close AT FETCH TIME and goes stale after each
+    new split or dividend; derive adjusted series from dividends + stock_splits instead.
+    Highest version wins per (symbol, price_date); query with FINAL.
+    Same key from both sources: EODHD always wins over Yahoo; within a source the latest fetch wins
+    (version = source rank x 10^13 + ingest epoch ms; EODHD rank 2, YAHOO rank 1).
+
+SCHEMA >
+    `symbol` String `json:$.symbol`,
+    `price_date` Date32 `json:$.price_date`,
+    `open` Decimal(23, 8) `json:$.open`,
+    `high` Decimal(23, 8) `json:$.high`,
+    `low` Decimal(23, 8) `json:$.low`,
+    `close` Decimal(23, 8) `json:$.close`,
+    `adjusted_close` Decimal(23, 8) `json:$.adjusted_close`,
+    `volume` UInt64 `json:$.volume`,
+    `source` LowCardinality(String) `json:$.source`,
+    `ingested_at` DateTime64(3) `json:$.ingested_at`,
+    `version` UInt64 `json:$.version`
+
+ENGINE "ReplacingMergeTree"
+ENGINE_VER version
+ENGINE_SORTING_KEY "symbol, price_date"
+ENGINE_PARTITION_KEY "toYear(price_date)"
+
+TOKEN ingest_token APPEND

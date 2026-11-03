@@ -1,0 +1,25 @@
+DESCRIPTION >
+    Daily FX rates, same shape as Merton fx_rates (ADR-VAL-06): one base_currency is worth rate units of
+    quote_currency. USD/THB and THB/USD are different pairs; inverse handling stays in Merton.
+    Primary source: EODHD /api/eod/{BASE}{QUOTE}.FOREX (rate = close).
+    Fallback: Yahoo chart API {BASE}{QUOTE}=X (close rounded to priceHint).
+    Market rates, not official reference rates.
+    Highest version wins per (base_currency, quote_currency, rate_date); query with FINAL.
+    Same key from both sources: EODHD always wins over Yahoo; within a source the latest fetch wins
+    (version = source rank x 10^13 + ingest epoch ms; EODHD rank 2, YAHOO rank 1).
+
+SCHEMA >
+    `base_currency` LowCardinality(String) `json:$.base_currency`,
+    `quote_currency` LowCardinality(String) `json:$.quote_currency`,
+    `rate_date` Date32 `json:$.rate_date`,
+    `rate` Decimal(23, 8) `json:$.rate`,
+    `source` LowCardinality(String) `json:$.source`,
+    `ingested_at` DateTime64(3) `json:$.ingested_at`,
+    `version` UInt64 `json:$.version`
+
+ENGINE "ReplacingMergeTree"
+ENGINE_VER version
+ENGINE_SORTING_KEY "base_currency, quote_currency, rate_date"
+ENGINE_PARTITION_KEY "toYear(rate_date)"
+
+TOKEN ingest_token APPEND

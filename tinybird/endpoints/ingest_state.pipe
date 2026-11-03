@@ -1,0 +1,22 @@
+DESCRIPTION >
+    Bookkeeping for ingest.py: last stored date per eod symbol and FX pair, and the last successful
+    fetch per (dataset, symbol) from fetch_log. dataset 'fetch:<name>' rows carry last_ok_fetch.
+
+TOKEN state_token READ
+
+NODE state
+SQL >
+    SELECT 'eod' AS dataset, symbol AS key, toString(max(price_date)) AS last_date, '' AS last_ok_fetch
+    FROM eod_prices
+    GROUP BY symbol
+    UNION ALL
+    SELECT 'fx', concat(base_currency, '/', quote_currency), toString(max(rate_date)), ''
+    FROM fx_rates
+    GROUP BY base_currency, quote_currency
+    UNION ALL
+    SELECT concat('fetch:', dataset), symbol, '', toString(max(fetched_at))
+    FROM fetch_log
+    WHERE status IN ('ok', 'empty')
+    GROUP BY dataset, symbol
+
+TYPE endpoint

@@ -1,0 +1,24 @@
+name = "market-data-clickhouse"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+# Cron-only Worker: no public HTTP endpoint.
+workers_dev = false
+preview_urls = false
+
+[observability]
+enabled = true
+
+# UTC. Keep in sync with SCHEDULES in src/index.ts. 01:00 UTC = 08:00 Asia/Bangkok.
+[triggers]
+crons = ["0 1 * * *", "15 1 * * *", "30 1 * * *", "45 1 * * *"]
+
+[vars]
+TINYBIRD_HOST = "https://api.ap-southeast-2.aws.tinybird.co"
+# EODHD-format symbols. Workers Free allows 50 subrequests per run: keep this list at 20 or fewer.
+SYMBOLS = "AAPL.US,MSFT.US,NVDA.US,SPY.US,QQQ.US"
+# BASE/QUOTE: 1 BASE = rate QUOTE (Merton ADR-VAL-06)
+FX_PAIRS = "USD/THB"
+SOURCE = "auto"
+
+# Secrets (never in this file): wrangler secret put EODHD_API_KEY / TINYBIRD_TOKEN / TINYBIRD_STATE_TOKEN

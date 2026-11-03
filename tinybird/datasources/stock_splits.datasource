@@ -1,0 +1,23 @@
+DESCRIPTION >
+    Stock splits as new:old (Merton ADR-TXN-07): a 4-for-1 split is ratio_new 4, ratio_old 1;
+    a 1-for-10 reverse split is 1:10. Snowball's split coefficient is ratio_new / ratio_old.
+    Primary source: EODHD /api/splits/{SYMBOL} ("split": "4.000000/1.000000").
+    Fallback: Yahoo chart events (numerator -> ratio_new, denominator -> ratio_old).
+    Highest version wins per (symbol, split_date); query with FINAL.
+    Same key from both sources: EODHD always wins over Yahoo; within a source the latest fetch wins
+    (version = source rank x 10^13 + ingest epoch ms; EODHD rank 2, YAHOO rank 1).
+
+SCHEMA >
+    `symbol` String `json:$.symbol`,
+    `split_date` Date32 `json:$.split_date`,
+    `ratio_new` Decimal(23, 8) `json:$.ratio_new`,
+    `ratio_old` Decimal(23, 8) `json:$.ratio_old`,
+    `source` LowCardinality(String) `json:$.source`,
+    `ingested_at` DateTime64(3) `json:$.ingested_at`,
+    `version` UInt64 `json:$.version`
+
+ENGINE "ReplacingMergeTree"
+ENGINE_VER version
+ENGINE_SORTING_KEY "symbol, split_date"
+
+TOKEN ingest_token APPEND

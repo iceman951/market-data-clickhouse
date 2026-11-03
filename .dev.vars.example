@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `npm run dev` (never commit .dev.vars). In production these are Worker secrets.
+EODHD_API_KEY=
+# Tinybird ingest_token (APPEND on all tables)
+TINYBIRD_TOKEN=
+# Tinybird state_token (READ on the ingest_state endpoint)
+TINYBIRD_STATE_TOKEN=
+# Optional for local testing: refresh splits/dividends/tickers regardless of cadence
+# FORCE_REFRESH=true
